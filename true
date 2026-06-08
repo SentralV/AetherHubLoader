@@ -1,5 +1,5 @@
 -- Aether Hub - Kyoka
--- loader by your4k
+-- loader by your4k (Multi Load Optimization)
 
 local THEME = {
 	Accent         = Color3.fromRGB(80, 80, 220),
@@ -10,13 +10,14 @@ local THEME = {
 	CardClick      = Color3.fromRGB(60, 60, 160),
 	TitleColor     = Color3.fromRGB(255, 255, 255),
 	SubtitleColor = Color3.fromRGB(120, 110, 200),
-	StatusColor   = Color3.fromRGB(160, 155, 220),
+	StatusColor   = Instance.new("TextLabel").TextColor3, -- Default fallback
 	BarTrack       = Color3.fromRGB(40, 40, 55),
 	SuccessColor   = Color3.fromRGB(60, 200, 120),
 	ErrorColor     = Color3.fromRGB(220, 60, 60),
 	CloseColor     = Color3.fromRGB(180, 180, 180),
 	CurrentGame   = Color3.fromRGB(60, 200, 120),
 }
+THEME.StatusColor = Color3.fromRGB(160, 155, 220)
 
 local games = {
 	{
@@ -39,11 +40,21 @@ local player    = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local placeId   = game.PlaceId
 
--- Detect current game
+-- Pre-fetching system: Downloads the script silently in the background
 local detectedGame = nil
+local preFetchedScript = nil
+
 for _, g in ipairs(games) do
 	if g.placeId == placeId then
 		detectedGame = g
+		task.spawn(function()
+			local success, code = pcall(function()
+				return game:HttpGet(g.url)
+			end)
+			if success then
+				preFetchedScript = code
+			end
+		end)
 		break
 	end
 end
@@ -71,7 +82,6 @@ frame.ClipsDescendants = true
 frame.ZIndex = 100
 frame.Parent = screenGui
 
--- Sleek gradient background for the loader
 local frameGradient = Instance.new("UIGradient")
 frameGradient.Color = ColorSequence.new({
 	ColorSequenceKeypoint.new(0, Color3.fromRGB(28, 28, 38)),
@@ -90,7 +100,6 @@ stroke.Thickness = 1
 stroke.Transparency = 0.5
 stroke.Parent = frame
 
--- Spinning arc (behind logo)
 local spinFrame = Instance.new("Frame")
 spinFrame.Size = UDim2.new(0, 46, 0, 46)
 spinFrame.Position = UDim2.new(0, 10, 0, 12)
@@ -111,7 +120,6 @@ local spinArcCorner = Instance.new("UICorner")
 spinArcCorner.CornerRadius = UDim.new(1, 0)
 spinArcCorner.Parent = spinArc
 
--- Logo
 local logo = Instance.new("ImageLabel")
 logo.Size = UDim2.new(0, 36, 0, 36)
 logo.Position = UDim2.new(0, 15, 0, 17)
@@ -234,9 +242,9 @@ local barCorner = Instance.new("UICorner")
 barCorner.CornerRadius = UDim.new(1, 0)
 barCorner.Parent = bar
 
-local easeOut    = TweenInfo.new(0.45, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-local easeIn     = TweenInfo.new(0.3,  Enum.EasingStyle.Quad,  Enum.EasingDirection.In)
-local easeLinear = TweenInfo.new(0.4,  Enum.EasingStyle.Linear)
+local easeOut    = TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+local easeIn     = TweenInfo.new(0.2,  Enum.EasingStyle.Quad,  Enum.EasingDirection.In)
+local easeLinear = TweenInfo.new(0.15,  Enum.EasingStyle.Linear)
 
 local function fadeIn()
 	TweenService:Create(frame,       easeOut, {Position = UDim2.new(0.5, -CARD_W / 2, 0.5, -CARD_H / 2), BackgroundTransparency = 0}):Play()
@@ -246,7 +254,7 @@ local function fadeIn()
 	TweenService:Create(hubSub,      easeOut, {TextTransparency = 0}):Play()
 	TweenService:Create(closeBtn,    easeOut, {TextTransparency = 0}):Play()
 	TweenService:Create(minimizeBtn, easeOut, {TextTransparency = 0}):Play()
-	task.wait(0.45)
+	task.wait(0.3)
 end
 
 local function showProgress(pct, label)
@@ -258,7 +266,6 @@ local function showProgress(pct, label)
 	TweenService:Create(bar, easeLinear, {Size = UDim2.new(pct, 0, 1, 0)}):Play()
 end
 
--- Re-engineered FadeOut loop to fix choppy element drops
 local function fadeOut()
 	TweenService:Create(frame,       easeIn, {Position = UDim2.new(0.5, -CARD_W / 2, 0.45, -CARD_H / 2), BackgroundTransparency = 1}):Play()
 	if stroke then TweenService:Create(stroke, easeIn, {Transparency = 1}):Play() end
@@ -274,20 +281,18 @@ local function fadeOut()
 			TweenService:Create(child, easeIn, {BackgroundTransparency = 1}):Play()
 		end
 	end
-	task.wait(0.35)
+	task.wait(0.2)
 end
 
--- Minimize / restore
 local minimized = false
 local function toggleMinimize()
 	minimized = not minimized
 	local targetH = minimized and TOP_H or CARD_H
-	TweenService:Create(frame, TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(0, CARD_W, 0, targetH)}):Play()
+	TweenService:Create(frame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(0, CARD_W, 0, targetH)}):Play()
 	minimizeBtn.Text = minimized and "+" or "-"
 end
 minimizeBtn.MouseButton1Click:Connect(toggleMinimize)
 
--- Drag
 local dragging  = false
 local dragStart = nil
 local startPos  = nil
@@ -323,7 +328,6 @@ UserInputService.InputChanged:Connect(function(input)
 	frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
 end)
 
--- Loops
 local spinning       = true
 local rainbowObjects  = {}
 local rainbowRunning = true
@@ -353,6 +357,7 @@ task.spawn(function()
 	end
 end)
 
+-- High Speed Script Runner
 local function runScript(gameEntry)
 	spinning           = false
 	rainbowRunning     = false
@@ -361,26 +366,25 @@ local function runScript(gameEntry)
 	dragging           = false
 	dragBar.Active     = false
 
-	showProgress(0.25, "Loading " .. gameEntry.name .. "...")
-	task.wait(0.3)
-	showProgress(0.65, "Fetching script...")
+	showProgress(0.4, "Executing " .. gameEntry.name .. "...")
 
 	local success, err = pcall(function()
-		loadstring(game:HttpGet(gameEntry.url))()
+		-- Uses the pre-fetched background script if available, otherwise downloads instantly
+		local scriptCode = (detectedGame and gameEntry.placeId == detectedGame.placeId and preFetchedScript) or game:HttpGet(gameEntry.url)
+		loadstring(scriptCode)()
 	end)
 
 	if success then
 		bar.BackgroundColor3 = THEME.SuccessColor
-		showProgress(1, gameEntry.name .. " loaded!")
+		showProgress(1, "Loaded successfully!")
 	else
 		bar.BackgroundColor3 = THEME.ErrorColor
-		showProgress(1, "Error loading script")
+		showProgress(1, "Error running script")
 		warn("AetherHub error:", err)
 	end
 
-	task.wait(1.2)
+	task.wait(0.4) -- Reduced from 1.2s to clear the UI ultra-fast
 	fadeOut()
-	task.wait(0.35)
 	screenGui:Destroy()
 end
 
@@ -400,13 +404,12 @@ local function makeGameButton(gameEntry, index)
 	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
 	btn.TextSize = 17
 	btn.Font = Enum.Font.GothamBold
-	btn.TextXAlignment = Enum.TextXAlignment.Center -- Centered the text perfectly
+	btn.TextXAlignment = Enum.TextXAlignment.Center
 	btn.AutoButtonColor = false
 	btn.BackgroundTransparency = 1
 	btn.ZIndex = 106
 	btn.Parent = frame
 
-	-- Rainbow Line Outline Around Buttons
 	local rainbowStroke = Instance.new("UIStroke")
 	rainbowStroke.Thickness = 2
 	rainbowStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
@@ -414,9 +417,7 @@ local function makeGameButton(gameEntry, index)
 	rainbowStroke.Parent = btn
 	table.insert(rainbowObjects, rainbowStroke)
 
-	-- Current Game Marker Indicators
 	if isCurrentGame then
-		-- Left green bar indicator
 		local currentIndicator = Instance.new("Frame")
 		currentIndicator.Size = UDim2.new(0, 4, 1, -16)
 		currentIndicator.Position = UDim2.new(0, 8, 0, 8)
@@ -429,7 +430,6 @@ local function makeGameButton(gameEntry, index)
 		indicatorCorner.CornerRadius = UDim.new(1, 0)
 		indicatorCorner.Parent = currentIndicator
 
-		-- Right side glowing text badge
 		local badge = Instance.new("TextLabel")
 		badge.Size = UDim2.new(0, 74, 0, 22)
 		badge.Position = UDim2.new(1, -86, 0.5, -11)
@@ -450,19 +450,18 @@ local function makeGameButton(gameEntry, index)
 	btnCorner.CornerRadius = UDim.new(0, 10)
 	btnCorner.Parent = btn
 
-	-- Hover effects: Glow only
 	btn.MouseEnter:Connect(function()
-		TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = hoverBg}):Play()
-		TweenService:Create(rainbowStroke, TweenInfo.new(0.15), {Thickness = 4.5}):Play()
+		TweenService:Create(btn, TweenInfo.new(0.12), {BackgroundColor3 = hoverBg}):Play()
+		TweenService:Create(rainbowStroke, TweenInfo.new(0.12), {Thickness = 4}):Play()
 	end)
 
 	btn.MouseLeave:Connect(function()
-		TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = defaultBg}):Play()
-		TweenService:Create(rainbowStroke, TweenInfo.new(0.2), {Thickness = 2}):Play()
+		TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = defaultBg}):Play()
+		TweenService:Create(rainbowStroke, TweenInfo.new(0.15), {Thickness = 2}):Play()
 	end)
 
-	local popIn = TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-	task.delay(0.08 * index, function()
+	local popIn = TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+	task.delay(0.04 * index, function()
 		TweenService:Create(btn, popIn, {Position = UDim2.new(0, 12, 0, yPos), BackgroundTransparency = 0}):Play()
 	end)
 
@@ -486,8 +485,8 @@ for i, gameEntry in ipairs(games) do
 			end
 		end
 
-		TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = THEME.CardClick}):Play()
-		task.wait(0.15)
+		TweenService:Create(btn, TweenInfo.new(0.1), {BackgroundColor3 = THEME.CardClick}):Play()
+		task.wait(0.05)
 		runScript(gameEntry)
 	end)
 end
@@ -497,6 +496,5 @@ closeBtn.MouseButton1Click:Connect(function()
 	spinning       = false
 	rainbowRunning = false
 	fadeOut()
-	task.wait(0.35)
 	screenGui:Destroy()
 end)

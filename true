@@ -1,0 +1,400 @@
+-- Aether Hub - zKyoka x your4k
+-- yes its unobfuscated so you can see, not the main code tho.
+
+local THEME = {
+	Accent        = Color3.fromRGB(80, 80, 220),
+	Background    = Color3.fromRGB(22, 22, 28),
+	Border        = Color3.fromRGB(60, 60, 100),
+	Card          = Color3.fromRGB(32, 32, 40),
+	CardHover     = Color3.fromRGB(42, 42, 55),
+	CardClick     = Color3.fromRGB(60, 60, 160),
+	TitleColor    = Color3.fromRGB(255, 255, 255),
+	SubtitleColor = Color3.fromRGB(120, 110, 200),
+	StatusColor   = Color3.fromRGB(160, 155, 220),
+	BarTrack      = Color3.fromRGB(40, 40, 55),
+	SuccessColor  = Color3.fromRGB(60, 200, 120),
+	ErrorColor    = Color3.fromRGB(220, 60, 60),
+	CloseColor    = Color3.fromRGB(180, 180, 180),
+}
+
+local games = {
+	{
+		name    = "Arsenal",
+		placeId = 286090429,
+		url     = "https://raw.githubusercontent.com/TKyoka/AetherHub/main/Arsenal",
+	},
+	{
+		name    = "Murder Mystery 2",
+		placeId = 142823291,
+		url     = "https://raw.githubusercontent.com/TKyoka/AetherHub/refs/heads/main/Murder%20Mystery%202",
+	},
+}
+
+local Players          = game:GetService("Players")
+local TweenService     = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+
+local player    = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+local placeId   = game.PlaceId
+
+local detectedGame = nil
+for _, g in ipairs(games) do
+	if g.placeId == placeId then
+		detectedGame = g
+		break
+	end
+end
+
+local displayList = detectedGame and {detectedGame} or games
+
+local CARD_W  = 420
+local BTN_H   = 54
+local BTN_GAP = 10
+local TOP_H   = 62
+local BOT_H   = 44
+local CARD_H  = TOP_H + (#displayList * (BTN_H + BTN_GAP)) - BTN_GAP + BOT_H + 14
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AetherHub"
+screenGui.ResetOnSpawn = false
+screenGui.DisplayOrder = 999
+screenGui.Parent = playerGui
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, CARD_W, 0, CARD_H)
+frame.Position = UDim2.new(0.5, -CARD_W / 2, 0.6, -CARD_H / 2)
+frame.BackgroundColor3 = THEME.Background
+frame.BorderSizePixel = 0
+frame.BackgroundTransparency = 1
+frame.ClipsDescendants = true
+frame.ZIndex = 100
+frame.Parent = screenGui
+
+local frameCorner = Instance.new("UICorner")
+frameCorner.CornerRadius = UDim.new(0, 14)
+frameCorner.Parent = frame
+
+local stroke = Instance.new("UIStroke")
+stroke.Color = THEME.Border
+stroke.Thickness = 1
+stroke.Transparency = 0.5
+stroke.Parent = frame
+
+local logo = Instance.new("ImageLabel")
+logo.Size = UDim2.new(0, 34, 0, 34)
+logo.Position = UDim2.new(0, 12, 0, 14)
+logo.BackgroundTransparency = 1
+logo.Image = "rbxassetid://121099929617261"
+logo.ScaleType = Enum.ScaleType.Fit
+logo.ImageColor3 = Color3.fromRGB(255, 255, 255)
+logo.ImageTransparency = 1
+logo.ZIndex = 101
+logo.Parent = frame
+
+local hubTitle = Instance.new("TextLabel")
+hubTitle.Size = UDim2.new(1, -150, 0, 22)
+hubTitle.Position = UDim2.new(0, 54, 0, 11)
+hubTitle.BackgroundTransparency = 1
+hubTitle.Text = "Aether Hub"
+hubTitle.TextColor3 = THEME.TitleColor
+hubTitle.TextSize = 16
+hubTitle.Font = Enum.Font.GothamBold
+hubTitle.TextXAlignment = Enum.TextXAlignment.Left
+hubTitle.TextTransparency = 1
+hubTitle.ZIndex = 101
+hubTitle.Parent = frame
+
+local hubSub = Instance.new("TextLabel")
+hubSub.Size = UDim2.new(1, -150, 0, 16)
+hubSub.Position = UDim2.new(0, 54, 0, 33)
+hubSub.BackgroundTransparency = 1
+hubSub.Text = "by Kyoka"
+hubSub.TextColor3 = THEME.SubtitleColor
+hubSub.TextSize = 12
+hubSub.Font = Enum.Font.Gotham
+hubSub.TextXAlignment = Enum.TextXAlignment.Left
+hubSub.TextTransparency = 1
+hubSub.ZIndex = 101
+hubSub.Parent = frame
+
+local minimizeBtn = Instance.new("TextButton")
+minimizeBtn.Size = UDim2.new(0, 28, 0, 28)
+minimizeBtn.Position = UDim2.new(1, -72, 0, 17)
+minimizeBtn.BackgroundTransparency = 1
+minimizeBtn.Text = "-"
+minimizeBtn.TextColor3 = THEME.CloseColor
+minimizeBtn.TextSize = 20
+minimizeBtn.Font = Enum.Font.GothamBold
+minimizeBtn.AutoButtonColor = false
+minimizeBtn.TextTransparency = 1
+minimizeBtn.ZIndex = 110
+minimizeBtn.Parent = frame
+
+minimizeBtn.MouseEnter:Connect(function()
+	TweenService:Create(minimizeBtn, TweenInfo.new(0.1), {TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+end)
+minimizeBtn.MouseLeave:Connect(function()
+	TweenService:Create(minimizeBtn, TweenInfo.new(0.1), {TextColor3 = THEME.CloseColor}):Play()
+end)
+
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 28, 0, 28)
+closeBtn.Position = UDim2.new(1, -38, 0, 17)
+closeBtn.BackgroundTransparency = 1
+closeBtn.Text = "X"
+closeBtn.TextColor3 = THEME.CloseColor
+closeBtn.TextSize = 16
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.AutoButtonColor = false
+closeBtn.TextTransparency = 1
+closeBtn.ZIndex = 110
+closeBtn.Parent = frame
+
+closeBtn.MouseEnter:Connect(function()
+	TweenService:Create(closeBtn, TweenInfo.new(0.1), {TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+end)
+closeBtn.MouseLeave:Connect(function()
+	TweenService:Create(closeBtn, TweenInfo.new(0.1), {TextColor3 = THEME.CloseColor}):Play()
+end)
+
+local divider = Instance.new("Frame")
+divider.Size = UDim2.new(1, -24, 0, 1)
+divider.Position = UDim2.new(0, 12, 0, TOP_H - 4)
+divider.BackgroundColor3 = THEME.Border
+divider.BackgroundTransparency = 0.5
+divider.BorderSizePixel = 0
+divider.ZIndex = 101
+divider.Parent = frame
+
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(1, -24, 0, 16)
+statusLabel.Position = UDim2.new(0, 12, 1, -34)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text = ""
+statusLabel.TextColor3 = THEME.StatusColor
+statusLabel.TextSize = 12
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.TextTransparency = 1
+statusLabel.ZIndex = 101
+statusLabel.Parent = frame
+
+local barBg = Instance.new("Frame")
+barBg.Size = UDim2.new(1, -24, 0, 4)
+barBg.Position = UDim2.new(0, 12, 1, -14)
+barBg.BackgroundColor3 = THEME.BarTrack
+barBg.BorderSizePixel = 0
+barBg.BackgroundTransparency = 1
+barBg.ZIndex = 101
+barBg.Parent = frame
+
+local barBgCorner = Instance.new("UICorner")
+barBgCorner.CornerRadius = UDim.new(1, 0)
+barBgCorner.Parent = barBg
+
+local bar = Instance.new("Frame")
+bar.Size = UDim2.new(0, 0, 1, 0)
+bar.BackgroundColor3 = THEME.Accent
+bar.BorderSizePixel = 0
+bar.ZIndex = 102
+bar.Parent = barBg
+
+local barCorner = Instance.new("UICorner")
+barCorner.CornerRadius = UDim.new(1, 0)
+barCorner.Parent = bar
+
+local easeOut    = TweenInfo.new(0.45, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+local easeIn     = TweenInfo.new(0.3,  Enum.EasingStyle.Quad,  Enum.EasingDirection.In)
+local easeLinear = TweenInfo.new(0.4,  Enum.EasingStyle.Linear)
+
+local function fadeIn()
+	TweenService:Create(frame,       easeOut, {Position = UDim2.new(0.5, -CARD_W / 2, 0.5, -CARD_H / 2), BackgroundTransparency = 0}):Play()
+	TweenService:Create(logo,        easeOut, {ImageTransparency = 0}):Play()
+	TweenService:Create(hubTitle,    easeOut, {TextTransparency = 0}):Play()
+	TweenService:Create(hubSub,      easeOut, {TextTransparency = 0}):Play()
+	TweenService:Create(closeBtn,    easeOut, {TextTransparency = 0}):Play()
+	TweenService:Create(minimizeBtn, easeOut, {TextTransparency = 0}):Play()
+	task.wait(0.45)
+end
+
+local function showProgress(pct, label)
+	if label then
+		statusLabel.Text = label
+		TweenService:Create(statusLabel, easeOut, {TextTransparency = 0}):Play()
+	end
+	TweenService:Create(barBg, easeOut, {BackgroundTransparency = 0}):Play()
+	TweenService:Create(bar, easeLinear, {Size = UDim2.new(pct, 0, 1, 0)}):Play()
+end
+
+local function fadeOut()
+	TweenService:Create(frame,       easeIn, {Position = UDim2.new(0.5, -CARD_W / 2, 0.45, -CARD_H / 2), BackgroundTransparency = 1}):Play()
+	TweenService:Create(logo,        easeIn, {ImageTransparency = 1}):Play()
+	TweenService:Create(hubTitle,    easeIn, {TextTransparency = 1}):Play()
+	TweenService:Create(hubSub,      easeIn, {TextTransparency = 1}):Play()
+	TweenService:Create(closeBtn,    easeIn, {TextTransparency = 1}):Play()
+	TweenService:Create(minimizeBtn, easeIn, {TextTransparency = 1}):Play()
+	TweenService:Create(statusLabel, easeIn, {TextTransparency = 1}):Play()
+	TweenService:Create(barBg,       easeIn, {BackgroundTransparency = 1}):Play()
+	task.wait(0.35)
+end
+
+local minimized = false
+local function toggleMinimize()
+	minimized = not minimized
+	local targetH = minimized and TOP_H or CARD_H
+	local tweenSize = TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+	TweenService:Create(frame, tweenSize, {Size = UDim2.new(0, CARD_W, 0, targetH)}):Play()
+	minimizeBtn.Text = minimized and "+" or "-"
+end
+minimizeBtn.MouseButton1Click:Connect(toggleMinimize)
+
+local dragging  = false
+local dragStart = nil
+local startPos  = nil
+
+local dragBar = Instance.new("TextButton")
+dragBar.Size = UDim2.new(1, -100, 0, TOP_H)
+dragBar.Position = UDim2.new(0, 0, 0, 0)
+dragBar.BackgroundTransparency = 1
+dragBar.Text = ""
+dragBar.AutoButtonColor = false
+dragBar.ZIndex = 105
+dragBar.Parent = frame
+
+dragBar.InputBegan:Connect(function(input)
+	local t = input.UserInputType
+	if t ~= Enum.UserInputType.MouseButton1 and t ~= Enum.UserInputType.Touch then return end
+	dragging  = true
+	dragStart = input.Position
+	startPos  = frame.Position
+end)
+
+dragBar.InputEnded:Connect(function(input)
+	local t = input.UserInputType
+	if t ~= Enum.UserInputType.MouseButton1 and t ~= Enum.UserInputType.Touch then return end
+	dragging = false
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if not dragging then return end
+	local t = input.UserInputType
+	if t ~= Enum.UserInputType.MouseMovement and t ~= Enum.UserInputType.Touch then return end
+	local delta = input.Position - dragStart
+	frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end)
+
+local rainbowLabels  = {}
+local rainbowRunning = true
+
+task.spawn(function()
+	local hue = 0
+	while rainbowRunning do
+		hue = (hue + 0.005) % 1
+		local color = Color3.fromHSV(hue, 1, 1)
+		for _, lbl in ipairs(rainbowLabels) do
+			if lbl and lbl.Parent then
+				lbl.TextColor3 = color
+			end
+		end
+		task.wait(0.03)
+	end
+end)
+
+local function runScript(gameEntry)
+	rainbowRunning     = false
+	closeBtn.Active    = false
+	minimizeBtn.Active = false
+	dragging           = false
+	dragBar.Active     = false
+
+	showProgress(0.25, "Loading " .. gameEntry.name .. "...")
+	task.wait(0.3)
+	showProgress(0.65, "Fetching script...")
+
+	local success, err = pcall(function()
+		loadstring(game:HttpGet(gameEntry.url))()
+	end)
+
+	if success then
+		bar.BackgroundColor3 = THEME.SuccessColor
+		showProgress(1, gameEntry.name .. " loaded!")
+	else
+		bar.BackgroundColor3 = THEME.ErrorColor
+		showProgress(1, "Error loading script")
+		warn("AetherHub error:", err)
+	end
+
+	task.wait(1.2)
+	fadeOut()
+	task.wait(0.35)
+	screenGui:Destroy()
+end
+
+local function makeGameButton(gameEntry, index)
+	local yPos = TOP_H + (index - 1) * (BTN_H + BTN_GAP) + 6
+
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1, -24, 0, BTN_H)
+	btn.Position = UDim2.new(0, 12, 0, yPos + 16)
+	btn.BackgroundColor3 = THEME.Card
+	btn.BorderSizePixel = 0
+	btn.Text = gameEntry.name
+	btn.TextColor3 = Color3.fromRGB(255, 0, 0)
+	btn.TextSize = 18
+	btn.Font = Enum.Font.GothamBold
+	btn.AutoButtonColor = false
+	btn.BackgroundTransparency = 1
+	btn.ZIndex = 106
+	btn.Parent = frame
+
+	table.insert(rainbowLabels, btn)
+
+	local btnCorner = Instance.new("UICorner")
+	btnCorner.CornerRadius = UDim.new(0, 10)
+	btnCorner.Parent = btn
+
+	btn.MouseEnter:Connect(function()
+		TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = THEME.CardHover}):Play()
+	end)
+	btn.MouseLeave:Connect(function()
+		TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = THEME.Card}):Play()
+	end)
+
+	local popIn = TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+	task.delay(0.08 * index, function()
+		TweenService:Create(btn, popIn, {Position = UDim2.new(0, 12, 0, yPos), BackgroundTransparency = 0}):Play()
+	end)
+
+	return btn
+end
+
+fadeIn()
+
+local loaded = false
+
+for i, gameEntry in ipairs(displayList) do
+	local btn = makeGameButton(gameEntry, i)
+
+	btn.MouseButton1Click:Connect(function()
+		if loaded then return end
+		loaded = true
+
+		for _, child in pairs(frame:GetChildren()) do
+			if child:IsA("TextButton") and child ~= closeBtn and child ~= minimizeBtn and child ~= dragBar then
+				child.Active = false
+			end
+		end
+
+		TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = THEME.CardClick}):Play()
+		task.wait(0.15)
+		runScript(gameEntry)
+	end)
+end
+
+closeBtn.MouseButton1Click:Connect(function()
+	if loaded then return end
+	rainbowRunning = false
+	fadeOut()
+	task.wait(0.35)
+	screenGui:Destroy()
+end)
